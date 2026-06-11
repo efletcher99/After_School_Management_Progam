@@ -4,19 +4,19 @@ export default function DashboardPage() {
       <h1 className="text-3xl font-bold">Dashboard</h1>
 
       <div className="grid gap-4 md:grid-cols-2">
-        <a className="border rounded p-4" href="/students">
+        <a href="/students" className="border rounded p-4 block hover:bg-gray-100">
           Students
-        </a>
+</a>
 
-        <a className="border rounded p-4" href="/attendance">
+        <a href="/attendance" className="border rounded p-4 block hover:bg-gray-100">
           Attendance
         </a>
 
-        <a className="border rounded p-4" href="/activities">
+        <a href="/activities"  className="border rounded p-4 block hover:bg-gray-100">
           Activities
         </a>
 
-        <a className="border rounded p-4" href="/reports">
+        <a href="/reports" className="border rounded p-4 block hover:bg-gray-100">
           Reports
         </a>
       </div>
