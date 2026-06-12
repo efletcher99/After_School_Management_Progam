@@ -3,6 +3,11 @@
 import { useState } from "react";
 import { supabase } from "../../../lib/supabase";
 
+type Site = {
+  id: string;
+  name: string;
+};
+
 export default function ImportStudentsPage() {
   const [file, setFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
@@ -19,35 +24,70 @@ export default function ImportStudentsPage() {
     setLoading(true);
 
     const text = await file.text();
-    const rows = text.split("\n").map((row) => row.split(","));
 
-    const students = rows.slice(1).map((row) => ({
-      first_name: row[0]?.trim(),
-      last_name: row[1]?.trim(),
-      grade: row[2]?.trim(),
-    }));
+    const rows = text
+      .split("\n")
+      .map((row) => row.trim())
+      .filter(Boolean)
+      .map((row) => row.split(",").map((cell) => cell.trim()));
 
-    const { data: sites } = await supabase.from("sites").select("id").limit(1);
+    const { data: sites, error: sitesError } = await supabase
+      .from("sites")
+      .select("*");
 
-    if (!sites || sites.length === 0) {
-      alert("No site found");
+    if (sitesError) {
+      alert(sitesError.message);
       setLoading(false);
       return;
     }
 
-    const siteId = sites[0].id;
+    if (!sites || sites.length === 0) {
+      alert("No sites found. Add East, Iron Springs, North, and South first.");
+      setLoading(false);
+      return;
+    }
+
+    const siteMap = new Map<string, string>();
+
+    (sites as Site[]).forEach((site) => {
+      siteMap.set(site.name.toLowerCase().trim(), site.id);
+    });
+
+    const students = rows.slice(1).map((row) => {
+      const siteName = row[3]?.trim();
+
+      return {
+        first_name: row[0]?.trim(),
+        last_name: row[1]?.trim(),
+        grade: row[2]?.trim(),
+        site_name: siteName,
+        site_id: siteName ? siteMap.get(siteName.toLowerCase()) : undefined,
+      };
+    });
+
+    const missingSite = students.find((student) => !student.site_id);
+
+    if (missingSite) {
+      alert(
+        `Could not find site "${missingSite.site_name}". Make sure it matches East, Iron Springs, North, or South exactly.`
+      );
+      setLoading(false);
+      return;
+    }
 
     const formatted = students
-      .filter((s) => s.first_name && s.last_name)
-      .map((s) => ({
-        ...s,
-        site_id: siteId,
+      .filter((student) => student.first_name && student.last_name)
+      .map((student) => ({
+        first_name: student.first_name,
+        last_name: student.last_name,
+        grade: student.grade,
+        site_id: student.site_id,
       }));
 
     const { error: deleteError } = await supabase
       .from("students")
       .delete()
-      .eq("site_id", siteId);
+      .neq("id", "00000000-0000-0000-0000-000000000000");
 
     if (deleteError) {
       alert(deleteError.message);
@@ -55,7 +95,9 @@ export default function ImportStudentsPage() {
       return;
     }
 
-    const { error: insertError } = await supabase.from("students").insert(formatted);
+    const { error: insertError } = await supabase
+      .from("students")
+      .insert(formatted);
 
     setLoading(false);
 
@@ -79,19 +121,31 @@ export default function ImportStudentsPage() {
         Uploading from csv will remove all current students.
       </p>
 
-      <input
-        type="file"
-        accept=".csv"
-        onChange={(e) => setFile(e.target.files?.[0] || null)}
-      />
+      <div className="flex items-center gap-2">
+  <label className="border rounded p-3 cursor-pointer">
+    Choose File
+    <input
+      type="file"
+      accept=".csv"
+      onChange={(e) => setFile(e.target.files?.[0] || null)}
+      className="hidden"
+    />
+  </label>
 
-      <button
-        onClick={handleUpload}
-        disabled={!file || loading}
-        className="border rounded p-3"
-      >
-        {loading ? "Uploading..." : "Upload CSV"}
-      </button>
+  <span>{file ? file.name : "No file chosen"}</span>
+
+  <button
+    onClick={handleUpload}
+    disabled={!file || loading}
+    className="border rounded p-3"
+  >
+    {loading ? "Uploading..." : "Upload CSV"}
+  </button>
+</div>
+
+      <div className="text-sm text-gray-600">
+       
+      </div>
     </main>
   );
 }

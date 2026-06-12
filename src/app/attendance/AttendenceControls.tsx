@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
 import { supabase } from "../../lib/supabase";
 
@@ -57,9 +58,13 @@ export default function AttendanceControls({
     setLoading(false);
 
     if (error) {
-      alert(error.message);
-      return;
-    }
+  if (error.message.includes("duplicate key")) {
+    alert("This student is already checked in.");
+  } else {
+    alert(error.message);
+  }
+  return;
+}
 
     window.location.reload();
   }
@@ -117,14 +122,21 @@ export default function AttendanceControls({
 
   return (
     <div
-      className={`border rounded p-4 flex flex-col md:flex-row md:items-center md:justify-between gap-4 ${
-        isCheckedOutToday ? "bg-gray-100 opacity-60" : ""
-      }`}
-    >
+  className={`border rounded p-4 flex flex-col md:flex-row md:items-center md:justify-between gap-4 ${
+    isCheckedOutToday
+      ? "bg-gray-100 opacity-60"
+      : activeAttendance
+      ? "bg-green-100"
+      : "bg-white"
+  }`}
+>
       <div className="min-w-[180px]">
-        <p className="font-semibold">
+        <Link
+          href={`/students/${student.id}`}
+          className="font-semibold underline hover:text-blue-600"
+        >
           {student.first_name} {student.last_name}
-        </p>
+        </Link>
 
         {isCheckedOutToday ? (
           <p className="text-sm text-gray-600">Checked out today</p>

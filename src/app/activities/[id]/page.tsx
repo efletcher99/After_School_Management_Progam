@@ -22,15 +22,8 @@ export default async function ActivityDetailPage({
     );
   }
 
-  const activityStart = makeDateTime(
-    activity.activity_date,
-    activity.start_time
-  );
-
-  const activityEnd = makeDateTime(
-    activity.activity_date,
-    activity.end_time
-  );
+  const activityStart = makeDateTime(activity.activity_date, activity.start_time);
+  const activityEnd = makeDateTime(activity.activity_date, activity.end_time);
 
   const dayStart = makeDateTime(activity.activity_date, "00:00");
   const dayEnd = makeDateTime(activity.activity_date, "23:59");
@@ -53,6 +46,7 @@ export default async function ActivityDetailPage({
   const participatingStudents =
     attendance?.filter((record) => {
       const checkIn = new Date(record.check_in_time);
+
       const checkOut = record.check_out_time
         ? new Date(record.check_out_time)
         : new Date();
@@ -66,28 +60,32 @@ export default async function ActivityDetailPage({
         Back to Activities
       </Link>
 
-      <div className="border rounded p-4 space-y-2">
+      <section className="border rounded p-4 space-y-2">
         <h1 className="text-3xl font-bold">{activity.title}</h1>
         <p>{activity.category}</p>
         <p>
-          {activity.activity_date} • {activity.start_time} - {activity.end_time}
+          {activity.activity_date} • {formatActivityTime(activity.start_time)} -{" "}
+          {formatActivityTime(activity.end_time)}
         </p>
         {activity.description && <p>{activity.description}</p>}
-      </div>
+      </section>
 
       <section className="space-y-3">
-        <h2 className="text-2xl font-bold">Participating Students</h2>
+        <h2 className="text-2xl font-bold">Students Attending This Activity</h2>
 
         {participatingStudents.map((record) => (
           <div key={record.id} className="border rounded p-4">
-            <p className="font-semibold">
+            <Link
+              href={`/students/${record.students?.id}`}
+              className="font-semibold underline"
+            >
               {record.students?.first_name} {record.students?.last_name}
-            </p>
+            </Link>
 
             <p className="text-sm text-gray-600">
-              Checked in: {formatTime(record.check_in_time)}
+              Checked in: {formatDateTime(record.check_in_time)}
               {record.check_out_time
-                ? ` • Checked out: ${formatTime(record.check_out_time)}`
+                ? ` • Checked out: ${formatDateTime(record.check_out_time)}`
                 : " • Still checked in"}
             </p>
           </div>
@@ -106,7 +104,21 @@ function makeDateTime(date: string, time: string) {
   return new Date(`${date}T${cleanTime}:00`);
 }
 
-function formatTime(value: string) {
+function formatActivityTime(time: string) {
+  const [hours, minutes] = time.split(":");
+  const date = new Date();
+
+  date.setHours(Number(hours));
+  date.setMinutes(Number(minutes));
+  date.setSeconds(0);
+
+  return date.toLocaleTimeString([], {
+    hour: "numeric",
+    minute: "2-digit",
+  });
+}
+
+function formatDateTime(value: string) {
   return new Date(value).toLocaleTimeString([], {
     hour: "numeric",
     minute: "2-digit",
